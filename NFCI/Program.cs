@@ -1,7 +1,12 @@
 ﻿using Sharprompt; //loads the interactable console package
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 // Sets variables
-string WebMFileInput;
-const string ffmpeg = "ffmpeg.exe";
+//string WebMFileInput;
+Boolean WebMInputValid = false;
+//string TrimmedWebMInput;
+var IllegalChar = new Regex(@"[<>*?\/\|]"); //sets regex for the following bad/illegal characters: <>*?/|
+string command = "ffmpeg.exe";
 
 //main menu
 do
@@ -21,7 +26,7 @@ do
 
             if (WebMUserChoice == "Help") //UserChoice for displaying a help section about bitrate options
             {
-                Console.Clear();
+                Console.Clear();//Clears console and prints information about variable and constant bitrate.
                 Console.WriteLine("\t\t\t\tVariable bitrate:");
                 Console.WriteLine("The bitrate is variable (can dynamically change) and can increase or decrease per frame,");
                 Console.WriteLine("depending on how much dedicated data ffmpeg believes each frame needs.");
@@ -41,10 +46,40 @@ do
             }
             else
             {
-                var WebMDisableAudio = Prompt.Confirm("Disable audio?", defaultValue: false);
-                Console.WriteLine("\n");
-                Console.WriteLine("Please select the video file. You can drag and drop the file.");
-                WebMFileInput = Console.ReadLine();
+                var WebMDisableAudio = Prompt.Confirm("Disable audio?", defaultValue: false);//asks with Sharprompt if the user wishes to disable audio.
+                do
+                {
+                    WebMInputValid = false;
+                    Console.WriteLine("\n");
+                    var WebMFileInput = Prompt.Input<string>("Please select the video file. You can drag and drop the file to complete the filename and location.");
+                    if (String.IsNullOrEmpty(WebMFileInput))//checks if input is empty or null and fails if true.
+                    {
+                        Console.WriteLine("\n");
+                        Console.WriteLine("Input cannot be empty!");
+                    }
+
+                    else if (IllegalChar.IsMatch(WebMFileInput))//checks if input contains any of the previously mentioned illegal characters, and fails if true.
+                    {
+                        Console.WriteLine("\n");
+                        Console.WriteLine("Input contains invalid characters, please refrain from using any of the following: <>*?/|");
+                    }
+                    else if (Path.HasExtension(WebMFileInput) == false)//checks if input is contains a file extension, and fails if false.
+                    {
+                        Console.WriteLine("\n");
+                        Console.WriteLine("Input requires a file extension at the end!");
+                    }
+                    else if (File.Exists(WebMFileInput) == false)//checks if input is actually accesible or exists, and fails if false.
+                    {
+                        Console.WriteLine("\n");
+                        Console.WriteLine("Input file cannot be found or this program does not have permission to access it. Please make sure you typed it correctly.");
+                    }
+                    else
+                    {
+                        WebMInputValid = true;//sets WebMIinputValid to true if all other conditions are false, and exits the DoWhile loop
+                    }
+                }while (WebMInputValid == false);
+                Console.WriteLine("This is outside the loop");
+                Console.ReadKey();
 
             }
         } while (true);
