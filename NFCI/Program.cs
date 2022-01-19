@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 //string WebMFileInput;
 Boolean WebMInputValid = false;
 //string TrimmedWebMInput;
-var IllegalChar = new Regex(@"[<>*?\/\|]"); //sets regex for the following bad/illegal characters: <>*?/|
+var IllegalChar = new Regex(@"[<>*?\/\|""]"); //sets regex for the following bad/illegal characters: <>*?/|
 string command = "ffmpeg.exe";
 
 //main menu
@@ -58,24 +58,31 @@ do
                         Console.WriteLine("Input cannot be empty!");
                     }
 
-                    else if (IllegalChar.IsMatch(WebMFileInput))//checks if input contains any of the previously mentioned illegal characters, and fails if true.
+                    else if (IllegalChar.IsMatch(WebMFileInput.Trim('"')))//checks if input contains any of the previously mentioned illegal characters, and fails if true.
                     {
                         Console.WriteLine("\n");
-                        Console.WriteLine("Input contains invalid characters, please refrain from using any of the following: <>*?/|");
+                        Console.WriteLine("Input contains invalid characters, please refrain from using any of the following: <>*?/|\"");
                     }
-                    else if (Path.HasExtension(WebMFileInput) == false)//checks if input is contains a file extension, and fails if false.
+                    else if (Path.HasExtension(WebMFileInput.Trim('"')) == false)//checks if input is contains a file extension, and fails if false.
                     {
                         Console.WriteLine("\n");
                         Console.WriteLine("Input requires a file extension at the end!");
                     }
-                    else if (File.Exists(WebMFileInput) == false)//checks if input is actually accesible or exists, and fails if false.
+                    else if (File.Exists(WebMFileInput.Trim('"')) == false)//checks if input is actually accesible or exists, and fails if false.
                     {
                         Console.WriteLine("\n");
                         Console.WriteLine("Input file cannot be found or this program does not have permission to access it. Please make sure you typed it correctly.");
                     }
+                    else if (WebMFileInput.StartsWith('"') == false  && (WebMFileInput.EndsWith('"')  == false) && (WebMFileInput.Any(char.IsWhiteSpace)))//checks for double quotes at the start and end of the string, and fails if false.
+                    {
+                        Console.WriteLine("\n");
+                        Console.WriteLine("No double quotes detected but spaces detected. Automatically adding double quotes...");
+                        WebMFileInput = '"' + WebMFileInput + '"';//adds double quotes
+                        WebMInputValid=true;//sets WebMIinputValid to true if all other conditions are false, and exits the DoWhile loop.
+                    }
                     else
                     {
-                        WebMInputValid = true;//sets WebMIinputValid to true if all other conditions are false, and exits the DoWhile loop
+                        WebMInputValid=true;//sets WebMIinputValid to true if all other conditions are false, and exits the DoWhile loop.
                     }
                 }while (WebMInputValid == false);
                 Console.WriteLine("This is outside the loop");
