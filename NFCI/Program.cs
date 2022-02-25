@@ -152,6 +152,7 @@ namespace NFCI
                                             command = command + ' ' + "-c:v" + ' ' + WebMVideoCodecs;
                                             if (WebMDisableAudio == false)
                                             {
+                                                ShowCommand(command);
                                                 var WebMAudioCodecs = Prompt.Select("Please select the audio codecs to use. Libopus is prefered as it's newer and more efficient", new[] { "libopus", "libvorbis" });
                                                 command = command + ' ' + "-c:a" + ' ' + WebMAudioCodecs;
                                                 ShowCommand(command);
