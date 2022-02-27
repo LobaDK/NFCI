@@ -9,58 +9,19 @@ namespace NFCI
     {
         static void Main(string[] args)
         {
-            //code to detect the type of OS being used, and set the RegexString variable accordingly
-            String RegexString = ""; //create empty string variable to allow the OS detection and Regex to use it
-            Console.ForegroundColor = ConsoleColor.Green;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //runs if the OS is Windows
-            {
-                Console.WriteLine("Windows based OS detected!");
-                RegexString = @"[<>*?\/\|""]";
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) //runs if the OS is Linux
-            {
-                Console.WriteLine("Linux based OS detected!");
-                Console.ResetColor();
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) //runs if the OS is MacOS
-            {
-                Console.WriteLine("MacOS detected!");
-                RegexString = "\"";
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD)) //runs if the OS is FreeBSD
-            {
-                Console.WriteLine("FreeBSD detected!");
-                RegexString = "\"";
-            }
-            else //runs if the OS type could not be detected, or is unknown
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error detecting OS! This shouldn't be an issue unless you're running Windows");
-                RegexString = "\"";
-            }
-            Console.ResetColor();
-
+            DetectFFmpeg();
             // Sets variables
-            Regex IllegalChar = new(RegexString); //sets regex using the previously set RegexString variable used in the OS detection
-            string command = "ffmpeg"; //builds the start of the ffmpeg command
-            bool WebMInputValid = false; //sets the validator for the WebM input to false
+            (string RegexString, string OS) = GetOS(); //saves the returned variables from GetOS function into variables that can be used in main code
+            Regex IllegalChar = new(RegexString); //sets regex using the previously set RegexString variable gotten from the GetOS function
+            string FfmpegPass2 = "ffmpeg"; //builds the start of the ffmpeg command
+            bool InputValid = false; //sets the validator for the WebM input to false
             byte CRF;
             short AudioBitrate;
+            
 
 
             do //main menu loop
             {
-                //if (File.Exists("ffmpeg.exe") == false || (File.Exists("ffmpeg") == false ))
-                //{
-                //    Console.ForegroundColor = ConsoleColor.Red;
-                //    Console.WriteLine("ffmpeg was not found in directory.");
-                //    Console.WriteLine("Please add ffmpeg either to PATH, or add it to {0}",Directory.GetCurrentDirectory());
-                //    Console.WriteLine("\n");
-                //    Console.ForegroundColor= ConsoleColor.Green;
-                //    Console.WriteLine("If it exists in PATH you can safely ignore this");
-                //    Console.WriteLine("\n");
-                //    Console.ResetColor();
-                //}
                 Console.WriteLine("\n---------------Welcome---------------");
                 Console.WriteLine("                  to                 ");
                 Console.WriteLine("  Nicklo's FFmpeg Console Interface\n");
@@ -98,108 +59,125 @@ namespace NFCI
                                             break;
                                         }
                                     case "Variable":
-                                    case "Constant":
+                                    case "Constant": //case for both the Variables and Constant choice
                                         {
                                             Console.WriteLine("\n");
-                                            var WebMDisableAudio = Prompt.Confirm("Disable audio? Press the Y or N key, or enter to default to N", defaultValue: false);//asks with Sharprompt if the user wishes to disable audio.
+                                            var DisableAudio = Prompt.Confirm("Disable audio? Press the Y or N key, or enter to default to N", defaultValue: false);//asks with Sharprompt if the user wishes to disable audio.
 
                                             do
                                             {
-                                                WebMInputValid = false;
+                                                InputValid = false;
                                                 Console.WriteLine("\n");
-                                                var WebMFileInput = Prompt.Input<string>("Please select the video file. You can drag and drop the file to complete the filename and location");
-                                                if (String.IsNullOrEmpty(WebMFileInput) || String.IsNullOrEmpty(WebMFileInput.Trim('"')))//checks if input is empty or null and fails if true.
+                                                var FileInput = Prompt.Input<string>("Please select the video file. You can drag and drop the file to complete the filename and location");
+                                                if (String.IsNullOrEmpty(FileInput) || String.IsNullOrEmpty(FileInput.Trim('"')))//checks if input is empty or null and fails if true.
                                                 {
                                                     Console.WriteLine("\nInput cannot be empty!");
                                                 }
 
-                                                else if (IllegalChar.IsMatch(WebMFileInput.Trim('"')))//checks if input contains any of the previously mentioned illegal characters, and fails if true.
+                                                else if (IllegalChar.IsMatch(FileInput.Trim('"')))//checks if input contains any of the previously mentioned illegal characters, and fails if true.
                                                 {
                                                     Console.WriteLine("\nInput contains invalid characters, please refrain from using any of the following: <>*?/|\"");
                                                 }
-                                                else if (Path.HasExtension(WebMFileInput.Trim('"')) == false)//checks if input is contains a file extension, and fails if false.
+                                                else if (Path.HasExtension(FileInput.Trim('"')) == false)//checks if input is contains a file extension, and fails if false.
                                                 {
                                                     Console.WriteLine("\nInput requires a file extension at the end!");
                                                 }
-                                                else if (File.Exists(WebMFileInput.Trim('"')) == false)//checks if input is actually accesible or exists, and fails if false.
+                                                else if (File.Exists(FileInput.Trim('"')) == false)//checks if input is actually accesible or exists, and fails if false.
                                                 {
                                                     Console.WriteLine("\nInput file cannot be found or this program does not have permission to access it. Please make sure you typed it correctly.");
                                                 }
-                                                else if (WebMFileInput.StartsWith('"') == false && (WebMFileInput.EndsWith('"') == false) && (WebMFileInput.Any(char.IsWhiteSpace)))//checks for double quotes at the start and end of the string, and fails if false.
+                                                else if (FileInput.StartsWith('"') == false && (FileInput.EndsWith('"') == false) && (FileInput.Any(char.IsWhiteSpace)))//checks for double quotes at the start and end of the string, aswell as if there's spaces, and fails if false.
                                                 {
-                                                    Console.WriteLine("\nNo double quotes detected but spaces detected. Automatically adding double quotes...");
-                                                    WebMFileInput = '"' + WebMFileInput + '"'; //adds double quotes
-                                                    WebMInputValid = true; //sets WebMIinputValid to true if all other conditions are met, and exits the DoWhile loop.
-                                                    command = command + ' ' + "-i" + ' ' + WebMFileInput; //build the command variable so it can be used outside
-                                                    if (WebMDisableAudio == true) //adds an additional flag for removing audio tracks
+                                                    FileInput = '"' + FileInput + '"'; //adds double quotes
+                                                    InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
+                                                    FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
+                                                    if (DisableAudio == true) //adds an additional flag for removing audio tracks
                                                     {
-                                                        command = command + ' ' + "-an";
+                                                        FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    WebMInputValid = true; //sets WebMIinputValid to true if all other conditions are met, and exits the DoWhile loop.
-                                                    command = command + ' ' + "-i" + ' ' + WebMFileInput; //build the command variable so it can be used outside
-                                                    if (WebMDisableAudio == true) //adds an additional flag for removing audio tracks if true
+                                                    InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
+                                                    FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
+                                                    if (DisableAudio == true) //adds an additional flag for removing audio tracks if true
                                                     {
-                                                        command = command + ' ' + "-an";
+                                                        FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
                                                     }
                                                 }
-                                            } while (WebMInputValid == false);
+                                            } while (InputValid == false); //stays in the input loop as long as it's not valid
 
-                                            ShowCommand(command);
-                                            var WebMVideoCodecs = Prompt.Select("Please select the video codecs to use. VP9 is prefered as it's newer and more efficient", new[] { "VP9", "VP8" });
-                                            command = command + ' ' + "-c:v" + ' ' + WebMVideoCodecs;
-                                            if (WebMDisableAudio == false)
+                                            ShowFfmpegPass2(FfmpegPass2); //prints current ffmpeg commandline
+                                            var VideoCodecs = Prompt.Select("Please select the video codecs to use. VP9 is prefered as it's newer and more efficient", new[] { "libvpx-VP9", "libvpx-VP8" }); //used for selecting video codecs
+                                            FfmpegPass2 = FfmpegPass2 + ' ' + "-c:v" + ' ' + VideoCodecs;
+                                            if (DisableAudio == false) //ask for audio codec too if WebMDisableAudio is false
                                             {
-                                                ShowCommand(command);
-                                                var WebMAudioCodecs = Prompt.Select("Please select the audio codecs to use. Libopus is prefered as it's newer and more efficient", new[] { "libopus", "libvorbis" });
-                                                command = command + ' ' + "-c:a" + ' ' + WebMAudioCodecs;
-                                                ShowCommand(command);
+                                                ShowFfmpegPass2(FfmpegPass2);
+                                                var AudioCodecs = Prompt.Select("Please select the audio codecs to use. Libopus is prefered as it's newer and more efficient", new[] { "libopus", "libvorbis" });//used for selecting audio codecs
+                                                FfmpegPass2 = FfmpegPass2 + ' ' + "-c:a" + ' ' + AudioCodecs;
+                                                ShowFfmpegPass2(FfmpegPass2);
                                             }
 
-                                            do
+                                            
+                                            if (WebMUserChoice == "Variable") //menu if the Variable bitrate option was chosen
                                             {
-                                                try
+                                                ShowFfmpegPass2(FfmpegPass2);
+                                                CRF = Prompt.Input<byte>("Please chose a CRF value between 0 and 63"); //Used for selecting a CRF value
+                                                if (CRF > 63) //checks if CRF value is 63 or below
                                                 {
-                                                    ShowCommand(command);
-                                                    CRF = Prompt.Input<byte>("Please chose a CRF value between 0 and 63");
-                                                    if (CRF > 63)
-                                                    {
-                                                        Console.WriteLine("CRF value is higher than 63 and is not allowed. Please try again.");
-                                                        Console.ReadKey();
-                                                    }
-                                                    else
-                                                    {
-                                                        command = command + ' ' + "-crf" + ' ' + CRF;
-                                                        break;
-                                                    }
-                                                }
-                                                catch (FormatException e)
-                                                {
-                                                    Console.WriteLine(e.Message);
+                                                    Console.WriteLine("CRF values higher than 63 is not allowed. Please try again."); //complains if CRF value is above 63
                                                     Console.ReadKey();
                                                 }
-                                                catch (Exception e)
+                                                else
                                                 {
-                                                    Console.WriteLine("\nSomething has gone horribly wrong! An unknown error was detected. \nPlease create an issue report on Github with the error message below included, as well as what ýou did to cause it.\n");
-                                                    Console.WriteLine(e.Message);
-                                                    Console.ReadKey();
+                                                    FfmpegPass2 = FfmpegPass2 + ' ' + "-crf" + ' ' + CRF + ' ' + "-b:v" + ' ' + "0";
                                                 }
-                                            } while (true);
-
-                                            ShowCommand(command);
-
-                                            if (WebMDisableAudio == false)
+                                            }
+                                            else if (WebMUserChoice == "Constant") //menu if the Constant bitrate option was chosen
                                             {
-                                                AudioBitrate = Prompt.Input<short>("Please specify the audio bitrate in kilobytes e.g. 192");
-                                                command = command + ' ' + "-b:a" + ' ' + AudioBitrate + "k";
-                                                ShowCommand(command);
+
                                             }
 
-                                            var pix_fmt = Prompt.Select("Please select the chroma subsampling. yuv420p is the most compatible and prefered.", new[] { "yuv420p", "yuv422p", "yuv444p" });
-                                            command = command + ' ' + "-pix_fmt" + ' ' + pix_fmt;
-                                            ShowCommand(command);
+                                            ShowFfmpegPass2(FfmpegPass2);
+
+                                            if (DisableAudio == false) //checks if audio is set to be disabled
+                                            {
+                                                AudioBitrate = Prompt.Input<short>("Please specify the audio bitrate in kilobytes e.g. 192"); //prompts for audio bitrate
+                                                FfmpegPass2 = FfmpegPass2 + ' ' + "-b:a" + ' ' + AudioBitrate + "k";
+                                                ShowFfmpegPass2(FfmpegPass2);
+                                            }
+
+                                            var pix_fmt = Prompt.Select("Please select the chroma subsampling. yuv420p is the most compatible and prefered.", new[] { "yuv420p", "yuv422p", "yuv444p" }); //prompts for the pixel format/chroma subsampling
+                                            FfmpegPass2 = FfmpegPass2 + ' ' + "-pix_fmt" + ' ' + pix_fmt;
+                                            ShowFfmpegPass2(FfmpegPass2);
+
+                                            var UseMetadata = Prompt.Confirm("Would you like to add metadata to the file?", defaultValue: false);
+                                            if (UseMetadata == true)
+                                            {
+                                                var UseMetadataTitle = Prompt.Confirm("Would you like to add a metadata title?", defaultValue: false);
+                                                if (UseMetadataTitle)
+                                                {
+                                                    var MetadataTitle = Prompt.Input<string>("Please type or paste the metadata title");
+                                                    if (MetadataTitle.StartsWith('"') == false && (MetadataTitle.EndsWith('"') == false) && MetadataTitle.Any(Char.IsWhiteSpace))
+                                                    {
+                                                        MetadataTitle = '"' + MetadataTitle + '"';
+                                                    }
+                                                    FfmpegPass2 = FfmpegPass2 + ' ' + "-metadata title=" + MetadataTitle;
+                                                }
+                                                var UseMetadataURL = Prompt.Confirm("Would you like to add a metadata URL?", defaultValue: false);
+                                                if (UseMetadataURL)
+                                                {
+                                                    var MetadataURL = Prompt.Input<string>("Please type or paste the metadata URL");
+                                                    if (MetadataURL.StartsWith('"') == false && (MetadataURL.EndsWith('"') == false) && MetadataURL.Any(char.IsWhiteSpace))
+                                                    {
+                                                        MetadataURL = '"' + MetadataURL + '"';
+                                                    }
+                                                    FfmpegPass2 = FfmpegPass2 + ' ' + "-metadata url=" + MetadataURL;
+                                                }
+                                            }
+                                            ShowFfmpegPass2(FfmpegPass2);
+
+
 
                                             Console.ForegroundColor = ConsoleColor.Red;
                                             Console.WriteLine("this is the end");
@@ -219,7 +197,7 @@ namespace NFCI
                             Console.Clear();
                             break;
                         }
-                    case "Info": //Displays a small info box.
+                    case "Info": //Displays a small info box about the program
                         {
                             Console.Clear();
                             Console.WriteLine("This program was written with frustration and the will to learn");
@@ -245,14 +223,86 @@ namespace NFCI
                 }
             } while (true);
         }
-        static void ShowCommand(String command) //creates custom function named ShowCommand. Used for displaying the current command used for ffmpeg. Thanks to a certain individual for teaching me this!
+        static void ShowFfmpegPass2(String FfmpegPass2) //creates custom function named ShowCommand. Used for displaying the current command used for ffmpeg. Thanks to a certain individual for teaching me this!
         {
             Console.Clear();
             Console.Write("\nYour current ffmpeg commandline looks like the following: ");
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write(command);
+            Console.Write(FfmpegPass2);
             Console.ResetColor();
             Console.WriteLine("\n");
+        }
+
+        static (string,string) GetOS() //creates custom function named GetOS for detecting the OS and setting the Regex and OS variable accordingly. Also tells the function it'll return two string type variables
+        {
+            string RegexString; //create empty string variable to allow the OS detection and Regex to use it
+            string OS;
+            Console.ForegroundColor = ConsoleColor.Green;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //runs if the OS is Windows
+            {
+                Console.WriteLine("Windows based OS detected!");
+                RegexString = @"[<>*?\/\|""]";
+                OS = "Windows";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) //runs if the OS is Linux
+            {
+                Console.WriteLine("Linux based OS detected!");
+                RegexString = "\"";
+                OS = "Linux";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) //runs if the OS is MacOS
+            {
+                Console.WriteLine("MacOS detected!");
+                RegexString = "\"";
+                OS = "MacOS";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD)) //runs if the OS is FreeBSD
+            {
+                Console.WriteLine("FreeBSD detected!");
+                RegexString = "\"";
+                OS = "FreeBSD";
+            }
+            else //runs if the OS type could not be detected, or is unknown
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error detecting OS! This shouldn't be an issue unless you're running Windows");
+                RegexString = "\"";
+                OS = "Error";
+            }
+            Console.ResetColor();
+            return (RegexString,OS); //returns with two variables, one containing the appropriate Regex, and the other the detected OS type
+        }
+        static void DetectFFmpeg() //creates a function named DetectFFmpeg used for, well... detecting if ffmpeg is on the system
+        {
+            try
+            {
+                using Process ffmpeg = new();
+                ffmpeg.StartInfo.FileName = "ffmpeg";
+                ffmpeg.StartInfo.CreateNoWindow = true;
+                ffmpeg.StartInfo.UseShellExecute = false;
+                ffmpeg.StartInfo.RedirectStandardError = true;
+                _ = ffmpeg.Start();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("ffmpeg detected!");
+                Console.ResetColor();
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Warning! no ffmpeg program was detected.");
+                Console.ResetColor();
+                Console.WriteLine("\nPlease either download and put ffmpeg in {0} or add it's location to PATH",Directory.GetCurrentDirectory());
+                Console.WriteLine("ffmpeg is a requirement, and this cannot be skipped.");
+                Console.WriteLine("\nPress any key to exit");
+                Console.ReadKey();
+                Environment.Exit(0);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("oops... an unknown error occured. Please create an issue on Github with the message below attached\nas well as what you might've done to cause it\n");
+                Console.WriteLine(e.Message);
+                Console.ReadKey();
+            }
         }
     }
 }
