@@ -70,9 +70,17 @@ namespace NFCI
                                                 InputValid = false;
                                                 Console.WriteLine("\n");
                                                 FileInput = Prompt.Input<string>("Please select the video file. You can drag and drop the file to complete the filename and location");
+                                                FileInput = FileInput.Trim();
                                                 try
                                                 {
-                                                    File.OpenRead(FileInput.Trim('"'));
+                                                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                                                    {
+                                                        File.OpenRead(FileInput.Trim('"'));
+                                                    }
+                                                    else
+                                                    {
+                                                        File.OpenRead(FileInput.Trim('\''));
+                                                    }
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
                                                     FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
                                                     if (DisableAudio == true) //adds an additional flag for removing audio tracks
@@ -241,12 +249,21 @@ namespace NFCI
                                             FileOutput = Path.ChangeExtension(FileInput, ".webm");
                                             if (FileOutput.Any(char.IsWhiteSpace))
                                             {
-                                                FileOutput = FileOutput.Replace("\"", "");
-                                                FileOutput = '"' + FileOutput + '"'; //adds double quotes
+                                                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                                                {
+                                                    FileOutput = FileOutput.Replace("\"", "");
+                                                    FileOutput = '"' + FileOutput + '"'; //adds double quotes for Windows
+                                                }
+                                                else
+                                                {
+                                                    FileOutput = FileOutput.Replace("'", "");
+                                                    FileOutput = '"' + FileOutput + '"'; //adds quotes for non Windows systems
+                                                }
                                             }
                                             FfmpegPass2 = FfmpegPass2 + ' ' + "-deadline" + ' ' + deadline + ' ' + FileOutput;
                                             FfmpegPass1 = FfmpegPass1 + ' ' + "-deadline" + ' ' + deadline + ' ' + "-f" + ' ' + "null" + ' ' + FfmpegPass1Output;
                                             ShowFfmpegPass2(FfmpegPass2);
+
 
                                             var UseTwoPass = Prompt.Confirm("Use Two-pass encoding? This will greatly increase quality, but also requires some extra encoding time as it essentially does it twice", defaultValue: true);
                                             try
@@ -266,7 +283,7 @@ namespace NFCI
                                             }
                                             catch (System.ComponentModel.Win32Exception e)
                                             {
-                                                Console.WriteLine("Looks like the program failed to run ffmpeg. This is either due to it somehow missing\nor the parameters passed to ffmpeg being badly formatted.\nPlease create an issue on Github and provide the below outputs:");
+                                                Console.WriteLine("Looks like the program failed to run ffmpeg. This is either due to it somehow missing\nOr the parameters passed to ffmpeg being badly formatted.\nPlease create an issue on Github and provide the below information:");
                                                 Console.WriteLine("\nUse Two-pass? {0}",UseTwoPass);
                                                 Console.WriteLine("\nFFmpeg pass 1: {0}",FfmpegPass1);
                                                 Console.WriteLine("\nFFmpeg pass 2: {0}", FfmpegPass2);
