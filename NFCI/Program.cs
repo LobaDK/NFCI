@@ -79,7 +79,9 @@ namespace NFCI
                                                     }
                                                     else
                                                     {
-                                                        File.OpenRead(FileInput.Trim('\''));
+                                                        FileInput = FileInput.Replace("'","");
+                                                        File.OpenRead(FileInput);
+                                                        FileInput = '"' + FileInput + '"';
                                                     }
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
                                                     FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
@@ -249,16 +251,10 @@ namespace NFCI
                                             FileOutput = Path.ChangeExtension(FileInput, ".webm");
                                             if (FileOutput.Any(char.IsWhiteSpace))
                                             {
-                                                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                                                {
-                                                    FileOutput = FileOutput.Replace("\"", "");
-                                                    FileOutput = '"' + FileOutput + '"'; //adds double quotes for Windows
-                                                }
-                                                else
-                                                {
-                                                    FileOutput = FileOutput.Replace("'", "");
-                                                    FileOutput = '"' + FileOutput + '"'; //adds quotes for non Windows systems
-                                                }
+                                                
+                                                FileOutput = FileOutput.Replace("\"","");
+                                                FileOutput = '"' + FileOutput + '"'; //adds quotes for non Windows systems
+                                                
                                             }
                                             FfmpegPass2 = FfmpegPass2 + ' ' + "-deadline" + ' ' + deadline + ' ' + FileOutput;
                                             FfmpegPass1 = FfmpegPass1 + ' ' + "-deadline" + ' ' + deadline + ' ' + "-f" + ' ' + "null" + ' ' + FfmpegPass1Output;
