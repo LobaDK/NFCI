@@ -70,28 +70,9 @@ namespace NFCI
                                                 InputValid = false;
                                                 Console.WriteLine("\n");
                                                 FileInput = Prompt.Input<string>("Please select the video file. You can drag and drop the file to complete the filename and location");
-                                                if (String.IsNullOrEmpty(FileInput) || String.IsNullOrEmpty(FileInput.Trim('"')))//checks if input is empty or null and fails if true.
+                                                try
                                                 {
-                                                    Console.WriteLine("\nInput cannot be empty!");
-                                                }
-
-                                                else if (IllegalChar.IsMatch(FileInput.Trim('"')))//checks if input contains any of the previously mentioned illegal characters, and fails if true.
-                                                {
-                                                    Console.WriteLine("\nInput contains invalid characters, please refrain from using any of the following: <>*?/|\"");
-                                                }
-                                                else if (Path.HasExtension(FileInput.Trim('"')) == false)//checks if input is contains a file extension, and fails if false.
-                                                {
-                                                    Console.WriteLine("\nInput requires a file extension at the end!");
-                                                }
-                                                else if (File.Exists(FileInput.Trim('"')) == false)//checks if input is actually accesible or exists, and fails if false.
-                                                {
-                                                    Console.WriteLine("\nInput file cannot be found or this program does not have permission to access it. Please make sure you typed it correctly.");
-                                                }
-                                                else if (FileInput.Any(char.IsWhiteSpace))//checks for double quotes at the start and end of the string, aswell as if there's spaces, and fails if false.
-                                                {
-                                                    FileInput = FileInput.Replace("\"","");
-                                                    FileInput = '"' + FileInput + '"'; //adds double quotes
-                                                    InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
+                                                    File.OpenRead(FileInput.Trim('"'));
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
                                                     FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
                                                     if (DisableAudio == true) //adds an additional flag for removing audio tracks
@@ -99,18 +80,83 @@ namespace NFCI
                                                         FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
                                                         FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
                                                     }
+                                                    InputValid = true;
                                                 }
-                                                else
+                                                catch (NullReferenceException)
                                                 {
-                                                    InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
-                                                    FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
-                                                    FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
-                                                    if (DisableAudio == true) //adds an additional flag for removing audio tracks if true
-                                                    {
-                                                        FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
-                                                        FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
-                                                    }
+                                                    Console.WriteLine("\nInput cannot be empty!");
                                                 }
+                                                catch (UnauthorizedAccessException)
+                                                {
+                                                    Console.WriteLine("\nFile not found. Either the program doesn't have access, or you specified a directory instead of file.");
+                                                }
+                                                catch (ArgumentException)
+                                                {
+                                                    Console.WriteLine("\nInput cannot be empty, only have spaces, or contain illegal characters such as <>*?\\|\"");
+                                                }
+                                                catch (PathTooLongException)
+                                                {
+                                                    Console.WriteLine("\nThe specified input path is too long, please move the file to a different folder.");
+                                                }
+                                                catch (DirectoryNotFoundException)
+                                                {
+                                                    Console.WriteLine("\nDirectory couldn't be found. Is this on a network drive perhaps?");
+                                                }
+                                                catch (FileNotFoundException)
+                                                {
+                                                    Console.WriteLine("\nFile could not be found. Did you enter the name correctly?");
+                                                }
+                                                catch (NotSupportedException)
+                                                {
+                                                    Console.WriteLine("\nInput is invalid format. If the filename is correct, please rename the file to a more conventional name.");
+                                                }
+                                                catch (IOException)
+                                                {
+                                                    Console.WriteLine("\nFile error. File could not be accessed or an invalid name/path was given.");
+                                                }
+
+
+                                                //if (string.IsNullOrEmpty(FileInput) || string.IsNullOrEmpty(FileInput.Trim('"')))//checks if input is empty or null and fails if true.
+                                                //{
+                                                //    Console.WriteLine("\nInput cannot be empty!");
+                                                //}
+
+                                                //else if (IllegalChar.IsMatch(FileInput.Trim('"')))//checks if input contains any of the previously mentioned illegal characters, and fails if true.
+                                                //{
+                                                //    Console.WriteLine("\nInput contains invalid characters, please refrain from using any of the following: <>*?/|\"");
+                                                //}
+                                                //else if (Path.HasExtension(FileInput.Trim('"')) == false)//checks if input is contains a file extension, and fails if false.
+                                                //{
+                                                //    Console.WriteLine("\nInput requires a file extension at the end!");
+                                                //}
+                                                //else if (File.Exists(FileInput.Trim('"')) == false)//checks if input is actually accesible or exists, and fails if false.
+                                                //{
+                                                //    Console.WriteLine("\nInput file cannot be found or this program does not have permission to access it. Please make sure you typed it correctly.");
+                                                //}
+                                                //else if (FileInput.Any(char.IsWhiteSpace))//checks for double quotes at the start and end of the string, aswell as if there's spaces, and fails if false.
+                                                //{
+                                                //    FileInput = FileInput.Replace("\"", "");
+                                                //    FileInput = '"' + FileInput + '"'; //adds double quotes
+                                                //    InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
+                                                //    FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
+                                                //    FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
+                                                //    if (DisableAudio == true) //adds an additional flag for removing audio tracks
+                                                //    {
+                                                //        FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
+                                                //        FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
+                                                //    }
+                                                //}
+                                                //else
+                                                //{
+                                                //    InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
+                                                //    FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
+                                                //    FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
+                                                //    if (DisableAudio == true) //adds an additional flag for removing audio tracks if true
+                                                //    {
+                                                //        FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
+                                                //        FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
+                                                //    }
+                                                //}
                                             } while (InputValid == false); //stays in the input loop as long as it's not valid
 
                                             FfmpegPass2 = FfmpegPass2 + ' ' + "-pass" + ' ' + "2" + ' ' + "-row-mt" + ' ' + "1";
@@ -224,6 +270,7 @@ namespace NFCI
                                                 Console.WriteLine("\nUse Two-pass? {0}",UseTwoPass);
                                                 Console.WriteLine("\nFFmpeg pass 1: {0}",FfmpegPass1);
                                                 Console.WriteLine("\nFFmpeg pass 2: {0}", FfmpegPass2);
+                                                Console.WriteLine("\n{0}",e.Message);
                                             }
                                             Console.ForegroundColor = ConsoleColor.Red;
                                             Console.WriteLine("\nthis is the end");
@@ -269,12 +316,12 @@ namespace NFCI
                 }
             } while (true);
         }
-        static void ShowFfmpegPass2(String FfmpegPass2) //creates custom function named ShowCommand. Used for displaying the current command used for ffmpeg. Thanks to a certain individual for teaching me this!
+        static void ShowFfmpegPass2(string FfmpegPass2) //creates custom function named ShowCommand. Used for displaying the current command used for ffmpeg. Thanks to a certain individual for teaching me this!
         {
             Console.Clear();
             Console.Write("\nYour current ffmpeg commandline looks like the following: ");
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write(FfmpegPass2);
+            Console.Write("ffmpeg {0}",FfmpegPass2);
             Console.ResetColor();
             Console.WriteLine("\n");
         }
