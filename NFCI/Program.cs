@@ -11,14 +11,15 @@ namespace NFCI
         {
             DetectFFmpeg();
             // Sets variables
-            (string RegexString, string OS) = GetOS(); //saves the returned variables from GetOS function into variables that can be used in main code
+            (string RegexString, string FfmpegPass1Output) = GetOS(); //saves the returned variables from GetOS function into variables that can be used in main code
             Regex IllegalChar = new(RegexString); //sets regex using the previously set RegexString variable gotten from the GetOS function
-            string FfmpegPass2 = "ffmpeg"; //builds the start of the ffmpeg command
+            string FfmpegPass1 = "";
+            string FfmpegPass2 = ""; //builds the start of the ffmpeg command
+            string AudioCodecs = "";
             bool InputValid = false; //sets the validator for the WebM input to false
             byte CRF;
             short AudioBitrate;
-            
-
+            string FileInput, FileOutput;
 
             do //main menu loop
             {
@@ -34,7 +35,7 @@ namespace NFCI
                             do //WebM menu loop
                             {
                                 Console.Clear();
-                                var WebMUserChoice = Prompt.Select("You have selected WebM. Please select a bitrate option. Use arrow keys and enter to navigate", new[] { "Variable", "Constant", "Help" }); //Uses Sharprompt for the WebM's bitrate options
+                                var WebMUserChoice = Prompt.Select("You have selected WebM. Please select a bitrate option", new[] { "Variable", "Constant", "Help" }); //Uses Sharprompt for the WebM's bitrate options
                                 switch (WebMUserChoice)
                                 {
                                     case "Help": //UserChoice for displaying a help section about bitrate options
@@ -62,13 +63,13 @@ namespace NFCI
                                     case "Constant": //case for both the Variables and Constant choice
                                         {
                                             Console.WriteLine("\n");
-                                            var DisableAudio = Prompt.Confirm("Disable audio? Press the Y or N key, or enter to default to N", defaultValue: false);//asks with Sharprompt if the user wishes to disable audio.
+                                            var DisableAudio = Prompt.Confirm("Disable audio? Press the Y or N key, or enter to default to No", defaultValue: false);//asks with Sharprompt if the user wishes to disable audio.
 
                                             do
                                             {
                                                 InputValid = false;
                                                 Console.WriteLine("\n");
-                                                var FileInput = Prompt.Input<string>("Please select the video file. You can drag and drop the file to complete the filename and location");
+                                                FileInput = Prompt.Input<string>("Please select the video file. You can drag and drop the file to complete the filename and location");
                                                 if (String.IsNullOrEmpty(FileInput) || String.IsNullOrEmpty(FileInput.Trim('"')))//checks if input is empty or null and fails if true.
                                                 {
                                                     Console.WriteLine("\nInput cannot be empty!");
@@ -86,34 +87,43 @@ namespace NFCI
                                                 {
                                                     Console.WriteLine("\nInput file cannot be found or this program does not have permission to access it. Please make sure you typed it correctly.");
                                                 }
-                                                else if (FileInput.StartsWith('"') == false && (FileInput.EndsWith('"') == false) && (FileInput.Any(char.IsWhiteSpace)))//checks for double quotes at the start and end of the string, aswell as if there's spaces, and fails if false.
+                                                else if (FileInput.Any(char.IsWhiteSpace))//checks for double quotes at the start and end of the string, aswell as if there's spaces, and fails if false.
                                                 {
+                                                    FileInput = FileInput.Replace("\"","");
                                                     FileInput = '"' + FileInput + '"'; //adds double quotes
                                                     InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
+                                                    FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
                                                     if (DisableAudio == true) //adds an additional flag for removing audio tracks
                                                     {
                                                         FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
+                                                        FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
                                                     }
                                                 }
                                                 else
                                                 {
                                                     InputValid = true; //sets InputValid to true if all other conditions are met, and exits the DoWhile loop.
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside
+                                                    FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
                                                     if (DisableAudio == true) //adds an additional flag for removing audio tracks if true
                                                     {
                                                         FfmpegPass2 = FfmpegPass2 + ' ' + "-an";
+                                                        FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput;
                                                     }
                                                 }
                                             } while (InputValid == false); //stays in the input loop as long as it's not valid
 
+                                            FfmpegPass2 = FfmpegPass2 + ' ' + "-pass" + ' ' + "2" + ' ' + "-row-mt" + ' ' + "1";
+                                            FfmpegPass1 = FfmpegPass1 + ' ' + "-pass" + ' ' + "1" + ' ' + "-row-mt" + ' ' + "1";
+
                                             ShowFfmpegPass2(FfmpegPass2); //prints current ffmpeg commandline
-                                            var VideoCodecs = Prompt.Select("Please select the video codecs to use. VP9 is prefered as it's newer and more efficient", new[] { "libvpx-VP9", "libvpx-VP8" }); //used for selecting video codecs
+                                            var VideoCodecs = Prompt.Select("Please select the video codecs to use. 'vp9' is prefered as it's newer and more efficient", new[] { "libvpx-vp9", "libvpx-vp8" }); //used for selecting video codecs
                                             FfmpegPass2 = FfmpegPass2 + ' ' + "-c:v" + ' ' + VideoCodecs;
+                                            FfmpegPass1 = FfmpegPass1 + ' ' + "-c:v" + ' ' + VideoCodecs + ' ' + "-an";
                                             if (DisableAudio == false) //ask for audio codec too if WebMDisableAudio is false
                                             {
                                                 ShowFfmpegPass2(FfmpegPass2);
-                                                var AudioCodecs = Prompt.Select("Please select the audio codecs to use. Libopus is prefered as it's newer and more efficient", new[] { "libopus", "libvorbis" });//used for selecting audio codecs
+                                                AudioCodecs = Prompt.Select("Please select the audio codecs to use. 'Libopus' is prefered as it's newer and more efficient", new[] { "libopus", "libvorbis" });//used for selecting audio codecs
                                                 FfmpegPass2 = FfmpegPass2 + ' ' + "-c:a" + ' ' + AudioCodecs;
                                                 ShowFfmpegPass2(FfmpegPass2);
                                             }
@@ -131,6 +141,7 @@ namespace NFCI
                                                 else
                                                 {
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-crf" + ' ' + CRF + ' ' + "-b:v" + ' ' + "0";
+                                                    FfmpegPass1 = FfmpegPass1 + ' ' + "-crf" + ' ' + CRF + ' ' + "-b:v" + ' ' + "0";
                                                 }
                                             }
                                             else if (WebMUserChoice == "Constant") //menu if the Constant bitrate option was chosen
@@ -147,29 +158,32 @@ namespace NFCI
                                                 ShowFfmpegPass2(FfmpegPass2);
                                             }
 
-                                            var pix_fmt = Prompt.Select("Please select the chroma subsampling. yuv420p is the most compatible and prefered.", new[] { "yuv420p", "yuv422p", "yuv444p" }); //prompts for the pixel format/chroma subsampling
+                                            var pix_fmt = Prompt.Select("Please select the chroma subsampling. 'yuv420p' is the most compatible and prefered.", new[] { "yuv420p", "yuv422p", "yuv444p" }); //prompts for the pixel format/chroma subsampling
                                             FfmpegPass2 = FfmpegPass2 + ' ' + "-pix_fmt" + ' ' + pix_fmt;
+                                            FfmpegPass1 = FfmpegPass1 + ' ' + "-pix_fmt" + ' ' + pix_fmt;
                                             ShowFfmpegPass2(FfmpegPass2);
 
-                                            var UseMetadata = Prompt.Confirm("Would you like to add metadata to the file?", defaultValue: false);
+                                            var UseMetadata = Prompt.Confirm("Would you like to add metadata to the file? Defaults to No", defaultValue: false);
                                             if (UseMetadata == true)
                                             {
-                                                var UseMetadataTitle = Prompt.Confirm("Would you like to add a metadata title?", defaultValue: false);
+                                                var UseMetadataTitle = Prompt.Confirm("Would you like to add a metadata title? Defaults to No", defaultValue: false);
                                                 if (UseMetadataTitle)
                                                 {
                                                     var MetadataTitle = Prompt.Input<string>("Please type or paste the metadata title");
-                                                    if (MetadataTitle.StartsWith('"') == false && (MetadataTitle.EndsWith('"') == false) && MetadataTitle.Any(Char.IsWhiteSpace))
+                                                    if (MetadataTitle.Any(Char.IsWhiteSpace))
                                                     {
+                                                        MetadataTitle = MetadataTitle.Replace("\"", "");
                                                         MetadataTitle = '"' + MetadataTitle + '"';
                                                     }
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-metadata title=" + MetadataTitle;
                                                 }
-                                                var UseMetadataURL = Prompt.Confirm("Would you like to add a metadata URL?", defaultValue: false);
+                                                var UseMetadataURL = Prompt.Confirm("Would you like to add a metadata URL? Defaults to No", defaultValue: false);
                                                 if (UseMetadataURL)
                                                 {
                                                     var MetadataURL = Prompt.Input<string>("Please type or paste the metadata URL");
-                                                    if (MetadataURL.StartsWith('"') == false && (MetadataURL.EndsWith('"') == false) && MetadataURL.Any(char.IsWhiteSpace))
+                                                    if (MetadataURL.Any(char.IsWhiteSpace))
                                                     {
+                                                        MetadataURL = MetadataURL.Replace("\"", "");
                                                         MetadataURL = '"' + MetadataURL + '"';
                                                     }
                                                     FfmpegPass2 = FfmpegPass2 + ' ' + "-metadata url=" + MetadataURL;
@@ -177,10 +191,42 @@ namespace NFCI
                                             }
                                             ShowFfmpegPass2(FfmpegPass2);
 
+                                            var deadline = Prompt.Select("Please select the deadline. 'best' is recommended, however 'good' is fine too. Avoid 'realtime' if possible", new[] { "best", "good", "realtime" });
+                                            FileOutput = Path.ChangeExtension(FileInput, ".webm");
+                                            if (FileOutput.Any(char.IsWhiteSpace))
+                                            {
+                                                FileOutput = FileOutput.Replace("\"", "");
+                                                FileOutput = '"' + FileOutput + '"'; //adds double quotes
+                                            }
+                                            FfmpegPass2 = FfmpegPass2 + ' ' + "-deadline" + ' ' + deadline + ' ' + FileOutput;
+                                            FfmpegPass1 = FfmpegPass1 + ' ' + "-deadline" + ' ' + deadline + ' ' + "-f" + ' ' + "null" + ' ' + FfmpegPass1Output;
+                                            ShowFfmpegPass2(FfmpegPass2);
 
-
+                                            var UseTwoPass = Prompt.Confirm("Use Two-pass encoding? This will greatly increase quality, but also requires some extra encoding time as it essentially does it twice", defaultValue: true);
+                                            try
+                                            {
+                                                if (UseTwoPass)
+                                                {
+                                                    Process FFmpeg1 = Process.Start("ffmpeg",FfmpegPass1);
+                                                    FFmpeg1.WaitForExit();
+                                                    Process FFmpeg2 = Process.Start("ffmpeg",FfmpegPass2);
+                                                    FFmpeg2.WaitForExit();
+                                                }
+                                                else
+                                                {
+                                                    Process FFmpeg2 = Process.Start("ffmpeg",FfmpegPass2);
+                                                    FFmpeg2.WaitForExit();
+                                                }
+                                            }
+                                            catch (System.ComponentModel.Win32Exception e)
+                                            {
+                                                Console.WriteLine("Looks like the program failed to run ffmpeg. This is either due to it somehow missing\nor the parameters passed to ffmpeg being badly formatted.\nPlease create an issue on Github and provide the below outputs:");
+                                                Console.WriteLine("\nUse Two-pass? {0}",UseTwoPass);
+                                                Console.WriteLine("\nFFmpeg pass 1: {0}",FfmpegPass1);
+                                                Console.WriteLine("\nFFmpeg pass 2: {0}", FfmpegPass2);
+                                            }
                                             Console.ForegroundColor = ConsoleColor.Red;
-                                            Console.WriteLine("this is the end");
+                                            Console.WriteLine("\nthis is the end");
                                             Console.ResetColor();
                                             Console.ReadKey();
                                             break;
@@ -236,41 +282,41 @@ namespace NFCI
         static (string,string) GetOS() //creates custom function named GetOS for detecting the OS and setting the Regex and OS variable accordingly. Also tells the function it'll return two string type variables
         {
             string RegexString; //create empty string variable to allow the OS detection and Regex to use it
-            string OS;
+            string FfmpegPass1Output;
             Console.ForegroundColor = ConsoleColor.Green;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //runs if the OS is Windows
             {
                 Console.WriteLine("Windows based OS detected!");
                 RegexString = @"[<>*?\/\|""]";
-                OS = "Windows";
+                FfmpegPass1Output = "NUL";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) //runs if the OS is Linux
             {
                 Console.WriteLine("Linux based OS detected!");
                 RegexString = "\"";
-                OS = "Linux";
+                FfmpegPass1Output = "/dev/null";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) //runs if the OS is MacOS
             {
                 Console.WriteLine("MacOS detected!");
                 RegexString = "\"";
-                OS = "MacOS";
+                FfmpegPass1Output = "/dev/null";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD)) //runs if the OS is FreeBSD
             {
                 Console.WriteLine("FreeBSD detected!");
                 RegexString = "\"";
-                OS = "FreeBSD";
+                FfmpegPass1Output = "/dev/null";
             }
             else //runs if the OS type could not be detected, or is unknown
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Error detecting OS! This shouldn't be an issue unless you're running Windows");
                 RegexString = "\"";
-                OS = "Error";
+                FfmpegPass1Output = "/dev/null";
             }
             Console.ResetColor();
-            return (RegexString,OS); //returns with two variables, one containing the appropriate Regex, and the other the detected OS type
+            return (RegexString,FfmpegPass1Output); //returns with two variables, one containing the appropriate Regex, and the other the detected OS type
         }
         static void DetectFFmpeg() //creates a function named DetectFFmpeg used for, well... detecting if ffmpeg is on the system
         {
