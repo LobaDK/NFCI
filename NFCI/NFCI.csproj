@@ -4,11 +4,10 @@
     <OutputType>exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <PublishSingleFile>false</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
     <PublishReadyToRun>true</PublishReadyToRun>
     <ImplicitUsings>enable</ImplicitUsings>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
     <Nullable>enable</Nullable>
     <RepositoryUrl>https://github.com/LobaDK/NFCI</RepositoryUrl>
     <SignAssembly>False</SignAssembly>
