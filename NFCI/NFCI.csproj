@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <PublishSingleFile>true</PublishSingleFile>
+    <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishReadyToRun>true</PublishReadyToRun>
@@ -13,6 +13,7 @@
     <RepositoryUrl>https://github.com/LobaDK/NFCI</RepositoryUrl>
     <SignAssembly>False</SignAssembly>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
