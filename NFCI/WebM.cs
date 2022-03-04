@@ -5,12 +5,12 @@ using System.Text.RegularExpressions; //Used with Regex
 
 namespace NFCI
 {
-    public class WebM
+    internal class WebM
     {
-        public static void ConvertToWebM()
+        internal static void ConvertToWebM()
         {
             // Sets variables
-            (string RegexString, string FfmpegPass1Output) = MainMenu.GetOS(); //saves the returned variables from GetOS function into variables that can be used in main code
+            (string RegexString, string FfmpegPass1Output) = Methods.GetOS(); //saves the returned variables from GetOS function into variables that can be used in main code
             Regex IllegalChar = new(RegexString); //sets regex using the previously set RegexString variable gotten from the GetOS function
             string FfmpegPass1 = ""; //builds the start of the ffmpeg command for pass 2
             string FfmpegPass2 = ""; //builds the start of the ffmpeg command for pass 2
@@ -49,13 +49,13 @@ namespace NFCI
                     try
                     {
                         File.OpenRead(FileInput); //attempt to open the file. If it fails the program will catch the exception and the input won't be valid
-                        FileInput = '"' + FileInput + '"'; //adds double quotes back to the input file
-                        FfmpegPass2 = FfmpegPass2 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside for the second pass
-                        FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput; //build the command variable so it can be used outside for the first pass
+                        FileInput = $"\"{FileInput}\""; //adds double quotes back to the input file
+                        FfmpegPass2 = $"{FfmpegPass2} -y -i {FileInput}"; //build the command variable so it can be used outside for the second pass
+                        FfmpegPass1 = $"{FfmpegPass1} -y -i {FileInput}"; //build the command variable so it can be used outside for the first pass
                         if (DisableAudio == true) //adds an additional flag for removing audio tracks
                         {
-                            FfmpegPass2 = FfmpegPass2 + ' ' + "-y" + ' ' + "-an";
-                            FfmpegPass1 = FfmpegPass1 + ' ' + "-y" + ' ' + "-i" + ' ' + FileInput; //doesn't add flag yet, will be added when the video codecs is chosen
+                            FfmpegPass2 = $"{FfmpegPass2} -y -an";
+                            FfmpegPass1 = $"{FfmpegPass1} -y -i {FileInput}"; //doesn't add flag yet, will be added when the video codecs is chosen
                         }
                         break;
                     }
@@ -90,35 +90,35 @@ namespace NFCI
 
                 } while (true); //stays in the input loop as long as it's not valid
 
-                FfmpegPass2 = FfmpegPass2 + ' ' + "-row-mt" + ' ' + "1";
-                FfmpegPass1 = FfmpegPass1 + ' ' + "-row-mt" + ' ' + "1";
+                FfmpegPass2 = $"{FfmpegPass2} -row-mt 1";
+                FfmpegPass1 = $"{FfmpegPass1} -row-mt 1";
 
-                MainMenu.ShowFfmpegPass2(FfmpegPass2); //prints current ffmpeg commandline
+                Methods.ShowFfmpegPass2(FfmpegPass2); //prints current ffmpeg commandline
                 var VideoCodecs = Prompt.Select("Please select the video codecs to use. 'vp9' is prefered as it's newer and more efficient", new[] { "libvpx-vp9", "libvpx-vp8" }); //Uses Sharprompt to select videos codecs
-                FfmpegPass2 = FfmpegPass2 + ' ' + "-c:v" + ' ' + VideoCodecs;
-                FfmpegPass1 = FfmpegPass1 + ' ' + "-c:v" + ' ' + VideoCodecs + ' ' + "-an"; //audio is not needed on the first pass
+                FfmpegPass2 = $"{FfmpegPass2} -c:v {VideoCodecs}";
+                FfmpegPass1 = $"{FfmpegPass1} -c:v {VideoCodecs} -an"; //audio is not needed on the first pass
                 if (DisableAudio == false) //ask for audio codec too if WebMDisableAudio is false
                 {
-                    MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                    Methods.ShowFfmpegPass2(FfmpegPass2);
                     AudioCodecs = Prompt.Select("Please select the audio codecs to use. 'Libopus' is prefered as it's newer and more efficient", new[] { "libopus", "libvorbis" });//Uses Sharprompt to select audio codecs
                     FfmpegPass2 = FfmpegPass2 + ' ' + "-c:a" + ' ' + AudioCodecs;
-                    MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                    Methods.ShowFfmpegPass2(FfmpegPass2);
                 }
 
                 do
                 {
-                    MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                    Methods.ShowFfmpegPass2(FfmpegPass2);
                     var BitrateMode = Prompt.Select("Please select the bitrate mode. A help option is also available", new[] { "Variable", "Constant", "Help" }); //Uses Sharprompt to select the bitrate mode
                     if (BitrateMode == "Help")
                     {
-                        MainMenu.BitrateHelp();
+                        Methods.BitrateHelp();
                         continue;
                     }
                     if (BitrateMode == "Variable") //menu if the Variable bitrate option was chosen
                     {
                         do
                         {
-                            MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                            Methods.ShowFfmpegPass2(FfmpegPass2);
                             var BitrateOption = Prompt.Select("Please select a bitrate option. Reading the 'Help' section is recommended if these options confuse you", new[] { "CRF (Constant Quality)", "ABR (Average Bitrate)", "CQ (Constrained Quality)", "Help" }); //Uses Sharprompt to select the bitrate option
 
                             if (BitrateOption == "CRF (Constant Quality)")
@@ -216,7 +216,7 @@ namespace NFCI
                             }
                             else if (BitrateOption == "Help")
                             {
-                                MainMenu.VariableBitrateHelp();
+                                Methods.VariableBitrateHelp();
                                 continue;
                             }
                             break;
@@ -240,7 +240,7 @@ namespace NFCI
                             }
                             else
                             {
-                                FfmpegPass2 = FfmpegPass2 + ' ' + "-minrate" + ' ' + CBR.ToUpper() + ' ' + "-b:v" + ' ' + CBR.ToUpper() + ' ' + "-maxrate" + ' ' + CBR.ToUpper();
+                                FfmpegPass2 = $"{FfmpegPass2} -minrate {CBR.ToUpper()} -b:v {CBR.ToUpper()} -maxrate {CBR.ToUpper()}";
                                 FfmpegPass1 = FfmpegPass1 + ' ' + "-minrate" + ' ' + CBR.ToUpper() + ' ' + "-b:v" + ' ' + CBR.ToUpper() + ' ' + "-maxrate" + ' ' + CBR.ToUpper();
                                 break;
                             }
@@ -252,19 +252,19 @@ namespace NFCI
                     }
                     break;
                 } while (true);
-                MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                Methods.ShowFfmpegPass2(FfmpegPass2);
 
                 if (DisableAudio == false) //checks if audio is set to be disabled
                 {
                     AudioBitrate = Prompt.Input<short>("Please specify the audio bitrate in kilobits e.g. 192"); //prompts for audio bitrate
                     FfmpegPass2 = FfmpegPass2 + ' ' + "-b:a" + ' ' + AudioBitrate + "k";
-                    MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                    Methods.ShowFfmpegPass2(FfmpegPass2);
                 }
 
                 var pix_fmt = Prompt.Select("Please select the chroma subsampling. 'yuv420p' is the most compatible and prefered.", new[] { "yuv420p", "yuv422p", "yuv444p" }); //prompts for the pixel format/chroma subsampling
                 FfmpegPass2 = FfmpegPass2 + ' ' + "-pix_fmt" + ' ' + pix_fmt;
                 FfmpegPass1 = FfmpegPass1 + ' ' + "-pix_fmt" + ' ' + pix_fmt;
-                MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                Methods.ShowFfmpegPass2(FfmpegPass2);
 
                 var UseMetadata = Prompt.Confirm("Would you like to add metadata to the file? Defaults to No", defaultValue: false); //Uses Sharprompt to ask the user if they'd like to add metadata to the file.
                 if (UseMetadata == true)
@@ -292,7 +292,7 @@ namespace NFCI
                         FfmpegPass2 = FfmpegPass2 + ' ' + "-metadata url=" + MetadataURL;
                     }
                 }
-                MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                Methods.ShowFfmpegPass2(FfmpegPass2);
 
                 var deadline = Prompt.Select("Please select the deadline. Best can make the conversion take 5x as long or more, however yields the best quality-to-bit-ratio", new[] { "best", "good", "realtime" }); //Uses Sharprompt to ask which deadline the user would like to use
                 FileOutput = Path.ChangeExtension(FileInput, ".webm"); //takes the input and changes it's extension to webm, and turns it into the output file
@@ -305,7 +305,7 @@ namespace NFCI
                 }
                 FfmpegPass2 = FfmpegPass2 + ' ' + "-deadline" + ' ' + deadline;
                 FfmpegPass1 = FfmpegPass1 + ' ' + "-deadline" + ' ' + deadline;
-                MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                Methods.ShowFfmpegPass2(FfmpegPass2);
 
 
                 var UseTwoPass = Prompt.Confirm("Use Two-pass encoding? This will greatly increase quality, but also requires some extra encoding time as it essentially does it twice", defaultValue: true); //Uses Sharprompt to ask if the user wants to use two-pass encoding
@@ -315,7 +315,7 @@ namespace NFCI
                     {
                         FfmpegPass2 = FfmpegPass2 + ' ' + "-pass" + ' ' + "2" + ' ' + FileOutput;
                         FfmpegPass1 = FfmpegPass1 + ' ' + "-pass" + ' ' + "1" + ' ' + "-f" + ' ' + "null" + ' ' + FfmpegPass1Output;
-                        MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                        Methods.ShowFfmpegPass2(FfmpegPass2);
                         Console.WriteLine("\n");
                         var CorrectFfmpegPass = Prompt.Confirm("Does this look correct?", defaultValue: true);
                         if (!CorrectFfmpegPass) //restarts if the user pressed no
@@ -332,7 +332,7 @@ namespace NFCI
                     else
                     {
                         FfmpegPass2 = FfmpegPass2 + ' ' + FileOutput;
-                        MainMenu.ShowFfmpegPass2(FfmpegPass2);
+                        Methods.ShowFfmpegPass2(FfmpegPass2);
                         Console.WriteLine("\n");
                         var CorrectFfmpegPass = Prompt.Confirm("Does this look correct?", defaultValue: true);
                         if (!CorrectFfmpegPass) //restarts if the user pressed no
